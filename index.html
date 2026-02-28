@@ -314,7 +314,7 @@
     <script type="module">
         import * as THREE from 'three';
 
-        // --- 1. THREE.JS VISUALIZER ---
+        // --- 1. THREE.JS VISUALIZER: FUTURISTIC TRAIN HEAD ---
         const container = document.getElementById('three-container');
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
@@ -324,32 +324,71 @@
         renderer.setPixelRatio(window.devicePixelRatio);
         container.appendChild(renderer.domElement);
 
-        // Awesome geometry for Oracle Core
-        const geometry = new THREE.IcosahedronGeometry(2, 1);
-        const material = new THREE.MeshPhongMaterial({
+        // Train Head Group
+        const trainHead = new THREE.Group();
+
+        // Aerodynamic Nose
+        const noseGeo = new THREE.ConeGeometry(1.5, 3, 32);
+        const noseMat = new THREE.MeshPhongMaterial({ color: 0x111111, shininess: 100 });
+        const nose = new THREE.Mesh(noseGeo, noseMat);
+        nose.rotation.x = Math.PI / 2;
+        nose.position.z = 2;
+        trainHead.add(nose);
+
+        // Main Body
+        const bodyGeo = new THREE.CylinderGeometry(1.5, 1.5, 4, 32);
+        const bodyMat = new THREE.MeshPhongMaterial({ color: 0x222222 });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.rotation.x = Math.PI / 2;
+        trainHead.add(body);
+
+        // Glowing Windshield
+        const glassGeo = new THREE.SphereGeometry(1.4, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+        const glassMat = new THREE.MeshPhongMaterial({
             color: 0x10b981,
-            wireframe: true,
             emissive: 0x064e3b,
             transparent: true,
-            opacity: 0.8
+            opacity: 0.6
         });
-        const core = new THREE.Mesh(geometry, material);
-        scene.add(core);
+        const windshield = new THREE.Mesh(glassGeo, glassMat);
+        windshield.position.set(0, 0.5, 1.5);
+        windshield.scale.set(1, 0.6, 1.2);
+        trainHead.add(windshield);
 
-        const pointLight = new THREE.PointLight(0x10b981, 50, 100);
-        pointLight.position.set(5, 5, 5);
-        scene.add(pointLight);
+        // Headlights
+        const lightGeo = new THREE.CircleGeometry(0.2, 16);
+        const lightMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
 
-        camera.position.z = 5;
+        const LMain = new THREE.Mesh(lightGeo, lightMat);
+        LMain.position.set(-0.7, -0.2, 3.4);
+        trainHead.add(LMain);
+
+        const RMain = new THREE.Mesh(lightGeo, lightMat);
+        RMain.position.set(0.7, -0.2, 3.4);
+        trainHead.add(RMain);
+
+        scene.add(trainHead);
+
+        // Atmosphere
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+
+        const spotLight = new THREE.SpotLight(0x10b981, 100);
+        spotLight.position.set(5, 5, 5);
+        scene.add(spotLight);
+
+        camera.position.set(4, 3, 7);
+        camera.lookAt(0, 0, 0);
 
         function animate() {
             requestAnimationFrame(animate);
-            core.rotation.x += 0.005;
-            core.rotation.y += 0.01;
 
-            // Pulsing effect
-            const val = 1 + Math.sin(Date.now() * 0.002) * 0.1;
-            core.scale.set(val, val, val);
+            // Hover movement
+            trainHead.position.y = Math.sin(Date.now() * 0.001) * 0.2;
+            trainHead.rotation.y = Math.sin(Date.now() * 0.0005) * 0.15;
+
+            // Pulsing glass
+            glassMat.emissiveIntensity = 0.5 + Math.sin(Date.now() * 0.003) * 0.5;
 
             renderer.render(scene, camera);
         }
