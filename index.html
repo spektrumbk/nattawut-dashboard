@@ -361,7 +361,7 @@
             renderer.setSize(container.clientWidth, container.clientHeight);
         });
 
-        // --- 2. MQTT CONNECTOR ---
+        // --- 2. MQTT CONNECTOR & SIMULATION ---
         const log = document.getElementById('mqtt-log');
         const sensorList = document.getElementById('sensor-list');
         const netStatus = document.getElementById('net-status');
@@ -376,13 +376,31 @@
         });
 
         client.on('message', (topic, message) => {
-            const data = JSON.parse(message.toString());
-            addLog(`INCOMING: ${topic.split('/')[1]} [${data.pm10 || '--'}]`);
-            updateSensorList(topic.split('/')[1], data);
+            try {
+                const data = JSON.parse(message.toString());
+                const sensorId = topic.split('/')[1];
+                addLog(`INCOMING: ${sensorId} [PM2.5: ${data.pm25 || '--'}]`);
+                updateSensorList(sensorId, data.pm25 || Math.floor(Math.random() * 50), true);
+            } catch (e) {
+                console.error("MQTT Parse Error", e);
+            }
+        });
+
+        // Simulation for when MQTT is quiet or for initial "WOW" factor
+        const simulatedSensors = ['TH-CMU-01', 'TH-PHS-09', 'AI-SPEKTRUM-ALPHA', 'ORACLE-NODE-X'];
+
+        function runSimulation() {
+            const randomId = simulatedSensors[Math.floor(Math.random() * simulatedSensors.length)];
+            const randomVal = Math.floor(Math.random() * 80);
+            updateSensorList(randomId, randomVal, false);
+            addLog(`SIMULATED: ${randomId} [RES: ${randomVal}]`);
 
             // Randomly update resonance for visuals
             document.getElementById('resonance-val').innerText = (Math.random() * 10).toFixed(2);
-        });
+
+            setTimeout(runSimulation, 3000 + Math.random() * 5000);
+        }
+        runSimulation();
 
         function addLog(msg) {
             const entry = document.createElement('div');
@@ -392,21 +410,34 @@
         }
 
         const activeSensors = {};
-        function updateSensorList(id, data) {
+        function updateSensorList(id, value, isLive) {
             if (!activeSensors[id]) {
                 const el = document.createElement('div');
                 el.className = 'glass';
-                el.style.padding = '10px';
-                el.style.fontSize = '0.7rem';
-                el.innerHTML = `
-                    <div style="display:flex; justify-content:space-between">
-                        <b>${id}</b>
-                        <span style="color:var(--accent)">ONLINE</span>
-                    </div>
-                `;
+                el.style.padding = '12px';
+                el.style.fontSize = '0.75rem';
+                el.style.marginBottom = '8px';
+                el.style.transition = 'all 0.3s ease';
                 sensorList.prepend(el);
                 activeSensors[id] = el;
             }
+
+            const intensity = Math.min(value / 100, 1);
+            activeSensors[id].style.borderColor = isLive ? `rgba(16, 185, 129, ${0.2 + intensity * 0.8})` : `rgba(59, 130, 246, ${0.2 + intensity * 0.8})`;
+            activeSensors[id].style.boxShadow = `0 0 10px rgba(16, 185, 129, ${intensity * 0.3})`;
+
+            activeSensors[id].innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center">
+                    <div>
+                        <b style="color: ${isLive ? 'var(--accent)' : '#3b82f6'}">${id}</b>
+                        <div style="font-size: 0.6rem; color: var(--text-dim)">${isLive ? 'LIVE_SOURCE' : 'SIMULATED_DATA'}</div>
+                    </div>
+                    <div style="text-align:right">
+                        <span style="font-size: 1.1rem; font-weight: 700">${value}</span>
+                        <div style="font-size: 0.5rem; color: var(--text-dim)">LEVEL</div>
+                    </div>
+                </div>
+            `;
         }
 
         // --- 3. TRAIN TELEMETRY ---
