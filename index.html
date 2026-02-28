@@ -52,7 +52,6 @@
             padding: 15px;
         }
 
-        /* Glassmorphism utility */
         .glass {
             background: var(--panel-bg);
             backdrop-filter: blur(12px);
@@ -102,12 +101,6 @@
             font-size: 0.8rem;
         }
 
-        .status-item {
-            display: flex;
-            items-center;
-            gap: 8px;
-        }
-
         .ping-dot {
             width: 8px;
             height: 8px;
@@ -155,24 +148,29 @@
             overflow: hidden;
         }
 
-        #three-canvas {
-            width: 100%;
-            height: 100%;
-            cursor: crosshair;
-        }
-
-        .overlay-data {
+        .quad-telemetry {
             position: absolute;
             bottom: 20px;
             right: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
             text-align: right;
             pointer-events: none;
         }
 
-        .overlay-data h2 {
-            font-size: 3rem;
+        .tele-point h2 {
+            font-size: 2rem;
             font-weight: 300;
             color: var(--accent);
+            margin-top: -5px;
+        }
+
+        .tele-point .lab {
+            font-size: 0.6rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .card {
@@ -241,7 +239,7 @@
             <div class="logo-circle"></div>
             <div class="logo-text">
                 <h1>AI SPEKTRUM</h1>
-                <span>PRAGMATIC ORACLE SYSTEM v1.2</span>
+                <span>HIGH-SPEED ORACLE HUB v2.0</span>
             </div>
         </div>
         <div class="system-status">
@@ -274,7 +272,7 @@
         </div>
 
         <div class="card glass" style="flex-grow: 1;">
-            <div class="card-title">MQTT STREAM <span>LIVE_FEED</span></div>
+            <div class="card-title">SYSTEM LOGS <span>LOG_FEED</span></div>
             <div id="mqtt-log"></div>
         </div>
     </aside>
@@ -282,16 +280,31 @@
     <main class="glass">
         <div class="visualizer-container">
             <div id="three-container" style="width:100%; height:100%;"></div>
-            <div class="overlay-data">
-                <span class="lab">SYSTEM_RESONANCE</span>
-                <h2 id="resonance-val">0.00</h2>
+
+            <div class="quad-telemetry">
+                <div class="tele-point">
+                    <span class="lab">SYSTEM_RESONANCE</span>
+                    <h2 id="resonance-val">0.00</h2>
+                </div>
+                <div class="tele-point">
+                    <span class="lab">TRAIN_SPEED_KMH</span>
+                    <h2 id="speed-val">000</h2>
+                </div>
+                <div class="tele-point">
+                    <span class="lab">ETA_REMAIN_MIN</span>
+                    <h2 id="eta-val">--</h2>
+                </div>
+                <div class="tele-point">
+                    <span class="lab">DRIVE_STABILITY</span>
+                    <h2 id="stability-val">0.00</h2>
+                </div>
             </div>
         </div>
     </main>
 
     <div class="right-sidebar">
         <div class="card glass" style="height: 100%;">
-            <div class="card-title">NETWORK SENSORS <span>DISTRIBUTION</span></div>
+            <div class="card-title">NETWORK SENSORS <span>ORACLE_FAMILY</span></div>
             <div id="sensor-list" style="display: flex; flex-direction: column; gap: 10px;">
                 <!-- Dynamically populated -->
             </div>
@@ -299,10 +312,9 @@
     </div>
 
     <footer>
-        &copy; 2026 SOUL BREWS STUDIO // ORACLE NET IDENTIFIED // PSI-LEVEL: 0.982
+        &copy; 2026 SOUL BREWS STUDIO // HIGH-SPEED PROTOCOL // PSI-LEVEL: 0.999
     </footer>
 
-    <!-- Three.js Module Script -->
     <script type="importmap">
         {
             "imports": {
@@ -314,7 +326,7 @@
     <script type="module">
         import * as THREE from 'three';
 
-        // --- 1. THREE.JS VISUALIZER: FUTURISTIC TRAIN HEAD ---
+        // --- 1. THREE.JS VISUALIZER: TRANSPARENT BULLET TRAIN ---
         const container = document.getElementById('three-container');
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
@@ -324,73 +336,71 @@
         renderer.setPixelRatio(window.devicePixelRatio);
         container.appendChild(renderer.domElement);
 
-        // Train Head Group
-        const trainHead = new THREE.Group();
+        const trainGroup = new THREE.Group();
 
-        // Aerodynamic Nose
-        const noseGeo = new THREE.ConeGeometry(1.5, 3, 32);
-        const noseMat = new THREE.MeshPhongMaterial({ color: 0x111111, shininess: 100 });
-        const nose = new THREE.Mesh(noseGeo, noseMat);
-        nose.rotation.x = Math.PI / 2;
-        nose.position.z = 2;
-        trainHead.add(nose);
-
-        // Main Body
-        const bodyGeo = new THREE.CylinderGeometry(1.5, 1.5, 4, 32);
-        const bodyMat = new THREE.MeshPhongMaterial({ color: 0x222222 });
-        const body = new THREE.Mesh(bodyGeo, bodyMat);
-        body.rotation.x = Math.PI / 2;
-        trainHead.add(body);
-
-        // Glowing Windshield
-        const glassGeo = new THREE.SphereGeometry(1.4, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+        // Transparent Material
         const glassMat = new THREE.MeshPhongMaterial({
             color: 0x10b981,
             emissive: 0x064e3b,
             transparent: true,
-            opacity: 0.6
+            opacity: 0.4,
+            shininess: 100
         });
-        const windshield = new THREE.Mesh(glassGeo, glassMat);
-        windshield.position.set(0, 0.5, 1.5);
-        windshield.scale.set(1, 0.6, 1.2);
-        trainHead.add(windshield);
+
+        const solidMat = new THREE.MeshPhongMaterial({ color: 0x111111 });
+
+        // Streamlined Bullet Nose
+        const noseGeo = new THREE.CylinderGeometry(0.1, 1.5, 4, 32);
+        const nose = new THREE.Mesh(noseGeo, glassMat);
+        nose.rotation.x = Math.PI / 2;
+        nose.position.z = 2.5;
+        trainGroup.add(nose);
+
+        // Main Body
+        const bodyGeo = new THREE.CylinderGeometry(1.5, 1.5, 6, 32);
+        const body = new THREE.Mesh(bodyGeo, glassMat);
+        body.rotation.x = Math.PI / 2;
+        trainGroup.add(body);
+
+        // Internal "Engine Core" (Solid)
+        const coreGeo = new THREE.BoxGeometry(0.8, 0.8, 3);
+        const core = new THREE.Mesh(coreGeo, solidMat);
+        core.position.set(0, -0.2, 0);
+        trainGroup.add(core);
 
         // Headlights
-        const lightGeo = new THREE.CircleGeometry(0.2, 16);
+        const lightGeo = new THREE.CircleGeometry(0.3, 16);
         const lightMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-
         const LMain = new THREE.Mesh(lightGeo, lightMat);
-        LMain.position.set(-0.7, -0.2, 3.4);
-        trainHead.add(LMain);
-
+        LMain.position.set(-0.8, -0.5, 4.2);
+        trainGroup.add(LMain);
         const RMain = new THREE.Mesh(lightGeo, lightMat);
-        RMain.position.set(0.7, -0.2, 3.4);
-        trainHead.add(RMain);
+        RMain.position.set(0.8, -0.5, 4.2);
+        trainGroup.add(RMain);
 
-        scene.add(trainHead);
+        scene.add(trainGroup);
 
-        // Atmosphere
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
         scene.add(ambientLight);
+        const pointLight = new THREE.PointLight(0x10b981, 100);
+        pointLight.position.set(5, 5, 5);
+        scene.add(pointLight);
 
-        const spotLight = new THREE.SpotLight(0x10b981, 100);
-        spotLight.position.set(5, 5, 5);
-        scene.add(spotLight);
-
-        camera.position.set(4, 3, 7);
+        camera.position.set(5, 3, 10);
         camera.lookAt(0, 0, 0);
 
         function animate() {
             requestAnimationFrame(animate);
-
-            // Hover movement
-            trainHead.position.y = Math.sin(Date.now() * 0.001) * 0.2;
-            trainHead.rotation.y = Math.sin(Date.now() * 0.0005) * 0.15;
-
-            // Pulsing glass
-            glassMat.emissiveIntensity = 0.5 + Math.sin(Date.now() * 0.003) * 0.5;
-
+            trainHeadAnimate();
             renderer.render(scene, camera);
+        }
+
+        function trainHeadAnimate() {
+            trainGroup.position.y = Math.sin(Date.now() * 0.002) * 0.15;
+            trainGroup.rotation.y = Math.sin(Date.now() * 0.001) * 0.1;
+            glassMat.opacity = 0.3 + Math.sin(Date.now() * 0.003) * 0.15;
+            const s = 1 + Math.sin(Date.now() * 0.005) * 0.02;
+            trainGroup.scale.set(s, s, s);
         }
         animate();
 
@@ -400,7 +410,7 @@
             renderer.setSize(container.clientWidth, container.clientHeight);
         });
 
-        // --- 2. MQTT CONNECTOR & SIMULATION ---
+        // --- 2. TELEMETRY & SIMULATION ---
         const log = document.getElementById('mqtt-log');
         const sensorList = document.getElementById('sensor-list');
         const netStatus = document.getElementById('net-status');
@@ -411,33 +421,31 @@
             netStatus.innerText = 'ONLINE';
             netStatus.style.color = 'var(--accent)';
             client.subscribe('DUSTBOY/+/+/+/status');
-            addLog('SYSTEM: Connection Established');
+            addLog('SYSTEM: High-Speed Uplink Active');
         });
 
         client.on('message', (topic, message) => {
             try {
                 const data = JSON.parse(message.toString());
                 const sensorId = topic.split('/')[1];
-                addLog(`INCOMING: ${sensorId} [PM2.5: ${data.pm25 || '--'}]`);
-                updateSensorList(sensorId, data.pm25 || Math.floor(Math.random() * 50), true);
-            } catch (e) {
-                console.error("MQTT Parse Error", e);
-            }
+                updateSensorList(sensorId, data.pm25 || 25, true);
+            } catch (e) { }
         });
 
-        // Simulation for when MQTT is quiet or for initial "WOW" factor
-        const simulatedSensors = ['TH-CMU-01', 'TH-PHS-09', 'AI-SPEKTRUM-ALPHA', 'ORACLE-NODE-X'];
-
         function runSimulation() {
-            const randomId = simulatedSensors[Math.floor(Math.random() * simulatedSensors.length)];
-            const randomVal = Math.floor(Math.random() * 80);
-            updateSensorList(randomId, randomVal, false);
-            addLog(`SIMULATED: ${randomId} [RES: ${randomVal}]`);
+            const speed = 250 + Math.random() * 60;
+            const eta = Math.floor(45 + Math.random() * 120);
+            const resonance = (Math.random() * 5).toFixed(2);
+            const stability = (0.95 + Math.random() * 0.05).toFixed(3);
 
-            // Randomly update resonance for visuals
-            document.getElementById('resonance-val').innerText = (Math.random() * 10).toFixed(2);
+            document.getElementById('speed-val').innerText = Math.floor(speed);
+            document.getElementById('eta-val').innerText = eta;
+            document.getElementById('resonance-val').innerText = resonance;
+            document.getElementById('stability-val').innerText = stability;
 
-            setTimeout(runSimulation, 3000 + Math.random() * 5000);
+            addLog(`TELEMETRY: Velocity ${Math.floor(speed)}km/h | Stability ${stability}`);
+
+            setTimeout(runSimulation, 2000 + Math.random() * 2000);
         }
         runSimulation();
 
@@ -453,60 +461,41 @@
             if (!activeSensors[id]) {
                 const el = document.createElement('div');
                 el.className = 'glass';
-                el.style.padding = '12px';
-                el.style.fontSize = '0.75rem';
-                el.style.marginBottom = '8px';
-                el.style.transition = 'all 0.3s ease';
+                el.style.padding = '10px';
+                el.style.fontSize = '0.7rem';
                 sensorList.prepend(el);
                 activeSensors[id] = el;
             }
-
-            const intensity = Math.min(value / 100, 1);
-            activeSensors[id].style.borderColor = isLive ? `rgba(16, 185, 129, ${0.2 + intensity * 0.8})` : `rgba(59, 130, 246, ${0.2 + intensity * 0.8})`;
-            activeSensors[id].style.boxShadow = `0 0 10px rgba(16, 185, 129, ${intensity * 0.3})`;
-
             activeSensors[id].innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:center">
-                    <div>
-                        <b style="color: ${isLive ? 'var(--accent)' : '#3b82f6'}">${id}</b>
-                        <div style="font-size: 0.6rem; color: var(--text-dim)">${isLive ? 'LIVE_SOURCE' : 'SIMULATED_DATA'}</div>
-                    </div>
-                    <div style="text-align:right">
-                        <span style="font-size: 1.1rem; font-weight: 700">${value}</span>
-                        <div style="font-size: 0.5rem; color: var(--text-dim)">LEVEL</div>
-                    </div>
+                <div style="display:flex; justify-content:space-between">
+                    <b>${id}</b>
+                    <span style="color:var(--accent)">ACTV [${value}]</span>
                 </div>
             `;
         }
 
-        // --- 3. TRAIN TELEMETRY ---
+        // --- 3. TRAIN CHART ---
         const trainData = [80, 78, 69, 64, 55, 49, 46, 38, 34, 30, 1, 1];
         const ctx = document.getElementById('train-chart').getContext('2d');
-        const chart = new Chart(ctx, {
+        new Chart(ctx, {
             type: 'line',
             data: {
                 labels: ['LPN', 'MTA', 'HGT', 'LPG', 'MMO', 'LNG', 'BPN', 'DCH', 'UTD', 'TAT', 'PSU', 'PLK'],
                 datasets: [{
-                    label: 'Battery %',
                     data: trainData,
                     borderColor: '#10b981',
                     backgroundColor: 'rgba(16, 185, 129, 0.1)',
                     fill: true,
                     tension: 0.4,
-                    borderWidth: 2,
                     pointRadius: 0
                 }]
             },
             options: {
                 plugins: { legend: { display: false } },
-                scales: {
-                    x: { ticks: { color: '#666', font: { size: 8 } }, grid: { display: false } },
-                    y: { ticks: { color: '#666', font: { size: 8 } }, grid: { color: 'rgba(255,255,255,0.05)' } }
-                }
+                scales: { x: { display: false }, y: { ticks: { color: '#666', font: { size: 8 } }, grid: { color: 'rgba(255,255,255,0.05)' } } }
             }
         });
 
-        // Clock
         setInterval(() => {
             document.getElementById('current-time').innerText = new Date().toLocaleTimeString('en-GB');
         }, 1000);
