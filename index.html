@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oracle Command Center | AI Spektrum</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Libraries -->
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --bg: #030712;
+            --panel-bg: rgba(17, 24, 39, 0.7);
+            --accent: #10b981;
+            /* Emerald */
+            --accent-glow: rgba(16, 185, 129, 0.3);
+            --text-main: #f3f4f6;
+            --text-dim: #9ca3af;
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            font-family: 'Outfit', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            display: grid;
+            grid-template-areas:
+                "header header header"
+                "sidebar-l main sidebar-r"
+                "footer footer footer";
+            grid-template-columns: 320px 1fr 320px;
+            grid-template-rows: 70px 1fr 40px;
+            gap: 15px;
+            padding: 15px;
+        }
+
+        /* Glassmorphism utility */
+        .glass {
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        header {
+            grid-area: header;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo-circle {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent), #3b82f6);
+            border-radius: 50%;
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        .logo-text h1 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .logo-text span {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--accent);
+        }
+
+        .system-status {
+            display: flex;
+            gap: 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+        }
+
+        .status-item {
+            display: flex;
+            items-center;
+            gap: 8px;
+        }
+
+        .ping-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent);
+            animation: blink 1.5s infinite;
+        }
+
+        @keyframes blink {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.3;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        aside {
+            grid-area: sidebar-l;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .right-sidebar {
+            grid-area: sidebar-r;
+        }
+
+        main {
+            grid-area: main;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .visualizer-container {
+            flex-grow: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #three-canvas {
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+
+        .overlay-data {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            text-align: right;
+            pointer-events: none;
+        }
+
+        .overlay-data h2 {
+            font-size: 3rem;
+            font-weight: 300;
+            color: var(--accent);
+        }
+
+        .card {
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        .card-title {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-dim);
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .data-point .val {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .data-point .lab {
+            font-size: 0.65rem;
+            color: var(--text-dim);
+        }
+
+        #mqtt-log {
+            height: 180px;
+            overflow-y: auto;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: #4ade80;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+        }
+
+        footer {
+            grid-area: footer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            letter-spacing: 1px;
+        }
+
+        canvas#train-chart {
+            height: 120px !important;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="glass">
+        <div class="logo-area">
+            <div class="logo-circle"></div>
+            <div class="logo-text">
+                <h1>AI SPEKTRUM</h1>
+                <span>PRAGMATIC ORACLE SYSTEM v1.2</span>
+            </div>
+        </div>
+        <div class="system-status">
+            <div class="status-item">
+                <div class="ping-dot"></div>
+                NETWORK: <span id="net-status">CONNECTING...</span>
+            </div>
+            <div class="status-item">
+                TIME: <span id="current-time">00:00:00</span>
+            </div>
+        </div>
+    </header>
+
+    <aside>
+        <div class="card glass">
+            <div class="card-title">TRAIN TELEMETRY <span>ACTIVE</span></div>
+            <div class="data-grid">
+                <div class="data-point">
+                    <div class="val" id="loc-name">CHIANG MAI</div>
+                    <div class="lab">CURRENT_STATION</div>
+                </div>
+                <div class="data-point">
+                    <div class="val" id="batt-val">99%</div>
+                    <div class="lab">BATTERY_LEVEL</div>
+                </div>
+            </div>
+            <div style="margin-top: 15px;">
+                <canvas id="train-chart"></canvas>
+            </div>
+        </div>
+
+        <div class="card glass" style="flex-grow: 1;">
+            <div class="card-title">MQTT STREAM <span>LIVE_FEED</span></div>
+            <div id="mqtt-log"></div>
+        </div>
+    </aside>
+
+    <main class="glass">
+        <div class="visualizer-container">
+            <div id="three-container" style="width:100%; height:100%;"></div>
+            <div class="overlay-data">
+                <span class="lab">SYSTEM_RESONANCE</span>
+                <h2 id="resonance-val">0.00</h2>
+            </div>
+        </div>
+    </main>
+
+    <div class="right-sidebar">
+        <div class="card glass" style="height: 100%;">
+            <div class="card-title">NETWORK SENSORS <span>DISTRIBUTION</span></div>
+            <div id="sensor-list" style="display: flex; flex-direction: column; gap: 10px;">
+                <!-- Dynamically populated -->
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        &copy; 2026 SOUL BREWS STUDIO // ORACLE NET IDENTIFIED // PSI-LEVEL: 0.982
+    </footer>
+
+    <!-- Three.js Module Script -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+
+        // --- 1. THREE.JS VISUALIZER ---
+        const container = document.getElementById('three-container');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        container.appendChild(renderer.domElement);
+
+        // Awesome geometry for Oracle Core
+        const geometry = new THREE.IcosahedronGeometry(2, 1);
+        const material = new THREE.MeshPhongMaterial({
+            color: 0x10b981,
+            wireframe: true,
+            emissive: 0x064e3b,
+            transparent: true,
+            opacity: 0.8
+        });
+        const core = new THREE.Mesh(geometry, material);
+        scene.add(core);
+
+        const pointLight = new THREE.PointLight(0x10b981, 50, 100);
+        pointLight.position.set(5, 5, 5);
+        scene.add(pointLight);
+
+        camera.position.z = 5;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            core.rotation.x += 0.005;
+            core.rotation.y += 0.01;
+
+            // Pulsing effect
+            const val = 1 + Math.sin(Date.now() * 0.002) * 0.1;
+            core.scale.set(val, val, val);
+
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        });
+
+        // --- 2. MQTT CONNECTOR ---
+        const log = document.getElementById('mqtt-log');
+        const sensorList = document.getElementById('sensor-list');
+        const netStatus = document.getElementById('net-status');
+
+        const client = mqtt.connect('wss://dustboy-wss-bridge.laris.workers.dev/mqtt');
+
+        client.on('connect', () => {
+            netStatus.innerText = 'ONLINE';
+            netStatus.style.color = 'var(--accent)';
+            client.subscribe('DUSTBOY/+/+/+/status');
+            addLog('SYSTEM: Connection Established');
+        });
+
+        client.on('message', (topic, message) => {
+            const data = JSON.parse(message.toString());
+            addLog(`INCOMING: ${topic.split('/')[1]} [${data.pm10 || '--'}]`);
+            updateSensorList(topic.split('/')[1], data);
+
+            // Randomly update resonance for visuals
+            document.getElementById('resonance-val').innerText = (Math.random() * 10).toFixed(2);
+        });
+
+        function addLog(msg) {
+            const entry = document.createElement('div');
+            entry.innerText = `> ${msg}`;
+            log.prepend(entry);
+            if (log.children.length > 50) log.removeChild(log.lastChild);
+        }
+
+        const activeSensors = {};
+        function updateSensorList(id, data) {
+            if (!activeSensors[id]) {
+                const el = document.createElement('div');
+                el.className = 'glass';
+                el.style.padding = '10px';
+                el.style.fontSize = '0.7rem';
+                el.innerHTML = `
+                    <div style="display:flex; justify-content:space-between">
+                        <b>${id}</b>
+                        <span style="color:var(--accent)">ONLINE</span>
+                    </div>
+                `;
+                sensorList.prepend(el);
+                activeSensors[id] = el;
+            }
+        }
+
+        // --- 3. TRAIN TELEMETRY ---
+        const trainData = [80, 78, 69, 64, 55, 49, 46, 38, 34, 30, 1, 1];
+        const ctx = document.getElementById('train-chart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['LPN', 'MTA', 'HGT', 'LPG', 'MMO', 'LNG', 'BPN', 'DCH', 'UTD', 'TAT', 'PSU', 'PLK'],
+                datasets: [{
+                    label: 'Battery %',
+                    data: trainData,
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 2,
+                    pointRadius: 0
+                }]
+            },
+            options: {
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { ticks: { color: '#666', font: { size: 8 } }, grid: { display: false } },
+                    y: { ticks: { color: '#666', font: { size: 8 } }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                }
+            }
+        });
+
+        // Clock
+        setInterval(() => {
+            document.getElementById('current-time').innerText = new Date().toLocaleTimeString('en-GB');
+        }, 1000);
+
+    </script>
+</body>
+
+</html>
